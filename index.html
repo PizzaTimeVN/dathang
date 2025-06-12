@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cảnh Báo Hàng Tồn Kho</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ffa500);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .controls {
+            padding: 2rem;
+            background: #f8f9ff;
+            border-bottom: 1px solid #e0e6ff;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .input-group select, .input-group input {
+            padding: 12px 16px;
+            border: 2px solid #e0e6ff;
+            border-radius: 12px;
+            font-size: 1rem;
+            background: white;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .input-group select:focus, .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            padding: 2rem;
+            display: none;
+        }
+
+        .kho-section {
+            margin-bottom: 2rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border-left: 5px solid #667eea;
+        }
+
+        .kho-header {
+            background: linear-gradient(135deg, #f8f9ff, #e8edff);
+            padding: 1.5rem;
+            border-bottom: 1px solid #e0e6ff;
+        }
+
+        .kho-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .warning-count {
+            background: #ff6b6b;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .items-list {
+            padding: 1.5rem;
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #fafbff;
+            border-radius: 10px;
+            margin-bottom: 0.8rem;
+            border-left: 4px solid #ffa500;
+            transition: all 0.3s ease;
+        }
+
+        .item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .item-quantity {
+            background: #ff6b6b;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .no-items {
+            text-align: center;
+            color: #28a745;
+            font-weight: 600;
+            padding: 2rem;
+            background: #f0f8f0;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #ffe6e6;
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .url-section {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .control-group {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .input-group select, .input-group input {
+                min-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 Cảnh Báo Hàng Tồn Kho</h1>
+            <p>Theo dõi hàng hóa sắp hết trong kho</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <div class="input-group">
+                    <label for="ngaySelect">Chọn Ngày:</label>
+                    <select id="ngaySelect">
+                        <option value="">-- Chọn ngày --</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="khoSelect">Chọn Kho:</label>
+                    <select id="khoSelect">
+                        <option value="">Tất cả kho</option>
+                        <option value="KDH">Kho DH</option>
+                        <option value="KNH">Kho NH</option>
+                        <option value="KPY">Kho PY</option>
+                        <option value="KHXH">Kho HXH</option>
+                    </select>
+                </div>
+
+                <button class="btn" onclick="checkInventory()">
+                    🔍 Kiểm Tra
+                </button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Đang tải dữ liệu...</p>
+        </div>
+
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        // Tạo options cho ngày (1-33)
+        const ngaySelect = document.getElementById('ngaySelect');
+        for (let i = 1; i <= 33; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `Ngày ${i}`;
+            ngaySelect.appendChild(option);
+        }
+
+        // Mapping tên kho
+        const khoNames = {
+            'KDH': 'Diên Hồng',
+            'KNH': 'Nguyễn Huệ',
+            'KPY': 'Phú Yên',
+            'KHXH': 'Hồ Xuân Hương'
+        };
+
+        async function checkInventory() {
+            const appScriptUrl = 'https://script.google.com/macros/s/AKfycbw4vqZORCDepJdmzMJNzq2Xzn6gx0Cw6DmktTbh7AxCU9qTG7O-oTgEevidKYHqusD3mA/exec';
+            const selectedNgay = document.getElementById('ngaySelect').value;
+            const selectedKho = document.getElementById('khoSelect').value;
+
+            if (!selectedNgay) {
+                alert('Vui lòng chọn ngày!');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+
+            try {
+                const url = `${appScriptUrl}?ngay=${selectedNgay}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                displayResults(data, selectedKho);
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('results').innerHTML = `
+                    <div class="error">
+                        <h3>Lỗi kết nối!</h3>
+                        <p>Không thể kết nối đến Google Apps Script. Vui lòng kiểm tra:</p>
+                        <ul>
+                            <li>Kết nối mạng có ổn định không?</li>
+                            <li>Script có đang hoạt động không?</li>
+                            <li>Dữ liệu trong Google Sheets có đúng không?</li>
+                        </ul>
+                        <p><strong>Chi tiết lỗi:</strong> ${error.message}</p>
+                    </div>
+                `;
+                document.getElementById('results').style.display = 'block';
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayResults(data, selectedKho) {
+            const resultsDiv = document.getElementById('results');
+            let html = '';
+
+            // Filter data based on selected kho
+            let filteredData = data;
+            if (selectedKho) {
+                filteredData = {};
+                filteredData[selectedKho] = data[selectedKho];
+            }
+
+            Object.keys(filteredData).forEach(kho => {
+                const khoData = filteredData[kho];
+                const khoDisplayName = khoNames[kho] || kho;
+
+                html += `<div class="kho-section">`;
+                
+                if (khoData.error) {
+                    html += `
+                        <div class="kho-header">
+                            <div class="kho-title">
+                                📦 ${khoDisplayName}
+                                <span class="warning-count">Lỗi</span>
+                            </div>
+                        </div>
+                        <div class="error">
+                            ${khoData.error}
+                        </div>
+                    `;
+                } else {
+                    const itemCount = khoData.length;
+                    html += `
+                        <div class="kho-header">
+                            <div class="kho-title">
+                                📦 ${khoDisplayName}
+                                <span class="warning-count">${itemCount} mặt hàng</span>
+                            </div>
+                        </div>
+                    `;
+
+                    if (itemCount === 0) {
+                        html += `
+                            <div class="no-items">
+                                ✅ Tất cả hàng hóa đều đủ số lượng!
+                            </div>
+                        `;
+                    } else {
+                        html += `<div class="items-list">`;
+                        khoData.forEach(item => {
+                            html += `
+                                <div class="item">
+                                    <div class="item-name">${item.name}</div>
+                                    <div class="item-quantity">${item.quantity}</div>
+                                </div>
+                            `;
+                        });
+                        html += `</div>`;
+                    }
+                }
+
+                html += `</div>`;
+            });
+
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+        }
+
+        // Auto-select first day when page loads
+        window.addEventListener('load', function() {
+            document.getElementById('ngaySelect').selectedIndex = 1; // Select "Ngày 1"
+        });
+    </script>
+</body>
+</html>
